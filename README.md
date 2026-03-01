@@ -1,14 +1,28 @@
 # CloudDesktop
 
-**Turn any Linux VPS into a full desktop GUI — accessible from any device, anywhere.**
+<p align="center">
+  <img src="screenshots/desktop.png?v=2" alt="CloudDesktop" width="700">
+</p>
 
-No PuTTY. No SSH terminals. Just open your browser and you're on your desktop.
+<p align="center">
+  <b>Turn any Linux VPS into a full desktop GUI — accessible from any device, anywhere.</b><br>
+  Fully open source. Free forever.
+</p>
+
+<p align="center">
+  <a href="https://github.com/HorusGod007/CloudDesktop/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/open%20source-100%25-brightgreen" alt="Open Source">
+</p>
 
 ---
+
+No PuTTY. No SSH terminals. Just open your browser and you're on your desktop.
 
 ## What is CloudDesktop?
 
 CloudDesktop transforms a bare Linux VPS into a complete browser-based desktop environment. It works on **any device** — your phone, tablet, iPad, TV, laptop — all sharing the **same live session**. Start work on your PC, continue on your phone. It's your desktop, everywhere.
+
+**100% open source** — no hidden fees, no premium tiers, no telemetry. Fork it, modify it, self-host it. It's yours.
 
 ### Key Features
 
@@ -17,6 +31,7 @@ CloudDesktop transforms a bare Linux VPS into a complete browser-based desktop e
 - **Trackpad Mode** — RDP-style virtual cursor on mobile. No awkward touch-to-click
 - **Auto-Fit Resolution** — Screen adjusts automatically to your device, orientation changes, and fullscreen
 - **PWA Support** — Install as a native app on iOS, Android, and desktop
+- **Claude Code Integration** — Built-in Claude Code CLI support with dedicated dock icons. Launch Claude Code or Claude Fast directly from your desktop
 - **Secure Login** — Password auth with optional TOTP two-factor authentication
 - **File Transfer** — Upload and download files with chunked transfer, pause/resume support
 - **Clipboard Sync** — Copy/paste between your local device and the remote desktop
@@ -24,6 +39,18 @@ CloudDesktop transforms a bare Linux VPS into a complete browser-based desktop e
 - **XFCE Desktop** — Lightweight, full-featured Linux desktop with Firefox, Chrome, file manager, and more
 - **SSL/TLS** — Self-signed or Let's Encrypt certificates out of the box
 - **Fail2ban + UFW** — Brute-force protection and firewall configured automatically
+
+---
+
+## Screenshots
+
+| Login | Desktop |
+|-------|---------|
+| ![Login](screenshots/login.png?v=2) | ![Desktop](screenshots/desktop.png?v=2) |
+
+| Settings | Claude Code in Dock |
+|----------|-------------------|
+| ![Settings](screenshots/settings.png?v=2) | ![Claude Code](screenshots/claude.png?v=2) |
 
 ---
 
@@ -40,6 +67,18 @@ The installer handles everything:
 - Nginx reverse proxy with SSL
 - Firewall + Fail2ban
 - Systemd services (auto-start on boot)
+- Claude Code CLI (optional — toggle during install)
+
+---
+
+## Claude Code Support
+
+CloudDesktop comes with first-class [Claude Code](https://docs.anthropic.com/en/docs/claude-code) support:
+
+- **Claude Code** — Launch Claude Code CLI in a terminal directly from the dock
+- **Claude Fast** — One-click launch with sandbox mode for quick tasks
+- **Directory Picker** — Choose your working directory before launching
+- Toggle Claude dock icons on/off during install or via config (`CLAUDE_DOCK=true/false`)
 
 ---
 
@@ -105,9 +144,15 @@ CloudDesktop is built mobile-first:
 
 ---
 
+## Contributing
+
+CloudDesktop is fully open source and contributions are welcome! Feel free to open issues, submit pull requests, or fork the project.
+
+---
+
 ## License
 
-MIT
+This project is licensed under the [MIT License](LICENSE) — free to use, modify, and distribute.
 
 ---
 
