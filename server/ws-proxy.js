@@ -72,6 +72,15 @@ function setupWsProxy(server) {
       console.log('WS proxy: connected to VNC backend');
     });
 
+    // Keepalive: ping every 30s to prevent idle disconnects
+    ws.isAlive = true;
+    ws.on('pong', () => { ws.isAlive = true; });
+    const pingInterval = setInterval(() => {
+      if (!ws.isAlive) { ws.terminate(); return; }
+      ws.isAlive = false;
+      if (ws.readyState === ws.OPEN) ws.ping();
+    }, 30000);
+
     target.on('data', (data) => {
       if (ws.readyState === ws.OPEN) {
         ws.send(data, { binary: true });
@@ -94,10 +103,12 @@ function setupWsProxy(server) {
     });
 
     ws.on('close', () => {
+      clearInterval(pingInterval);
       target.destroy();
     });
 
     ws.on('error', (err) => {
+      clearInterval(pingInterval);
       console.error('WebSocket error:', err.message);
       target.destroy();
     });
