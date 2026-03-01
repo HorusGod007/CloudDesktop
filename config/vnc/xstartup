@@ -1,0 +1,31 @@
+#!/bin/bash
+# CloudDesktop VNC session startup
+
+unset SESSION_MANAGER
+unset DBUS_SESSION_BUS_ADDRESS
+
+# Start D-Bus session
+if command -v dbus-launch &>/dev/null; then
+  eval "$(dbus-launch --sh-syntax)"
+  export DBUS_SESSION_BUS_ADDRESS
+fi
+
+# Set XDG directories
+export XDG_SESSION_TYPE=x11
+export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+export XDG_CONFIG_DIRS=/etc/xdg
+export XDG_DATA_DIRS=/usr/local/share:/usr/share
+
+# Start XFCE4 desktop
+startxfce4 &
+
+# After desktop loads: kill XFCE panel (web dock replaces it) + trust .desktop files
+(sleep 5
+xfce4-panel --quit 2>/dev/null
+killall xfce4-panel 2>/dev/null
+for f in "$HOME/Desktop"/*.desktop; do
+  [ -f "$f" ] && gio set "$f" metadata::trusted true 2>/dev/null
+done
+) &
+
+wait

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0f0f1a">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon-192.svg">
+  <title>CloudDesktop — Login</title>
+  <link rel="stylesheet" href="/css/login.css?v=4">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <h1>CloudDesktop</h1>
+        <p>Sign in to access your desktop</p>
+      </div>
+      <form id="login-form" autocomplete="on">
+        <div id="credentials-group">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required autofocus
+                   autocomplete="username" placeholder="admin">
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required
+                   autocomplete="current-password" placeholder="Password">
+          </div>
+        </div>
+        <div id="otp-group" class="form-group" hidden>
+          <label for="otp">Two-Factor Code</label>
+          <input type="text" id="otp" name="otp" inputmode="numeric" pattern="[0-9]*"
+                 maxlength="6" placeholder="000000" autocomplete="one-time-code">
+          <button type="button" id="otp-back" class="otp-back-btn">Back to login</button>
+        </div>
+        <div id="error-message" class="error-message" hidden></div>
+        <button type="submit" id="login-btn">Sign In</button>
+      </form>
+    </div>
+  </div>
+  <script src="/js/api.js?v=3"></script>
+  <script src="/js/login.js?v=3"></script>
+</body>
+</html>

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon-192.svg">
+  <title>CloudDesktop</title>
+  <link rel="stylesheet" href="/css/desktop.css?v=9">
+</head>
+<body>
+
+  <!-- Status overlay -->
+  <div id="status-overlay" class="status-overlay">
+    <div class="status-spinner"></div>
+    <div id="status-text">Connecting to desktop…</div>
+  </div>
+
+  <!-- noVNC canvas -->
+  <div id="vnc-container"></div>
+
+  <!-- Mobile floating toolbar (touch devices only, shown via JS) -->
+  <div id="mobile-toolbar" class="mobile-toolbar" hidden>
+    <button class="mob-btn" id="mob-zoom-in" title="Zoom In">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="10" y1="5" x2="10" y2="15"/><line x1="5" y1="10" x2="15" y2="10"/>
+      </svg>
+    </button>
+    <span class="mob-zoom-label" id="mob-zoom-level">100%</span>
+    <button class="mob-btn" id="mob-zoom-out" title="Zoom Out">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="5" y1="10" x2="15" y2="10"/>
+      </svg>
+    </button>
+    <button class="mob-btn" id="mob-zoom-fit" title="Fit Screen">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <rect x="3" y="3" width="14" height="14" rx="2"/>
+        <path d="M3 7h14"/>
+      </svg>
+    </button>
+    <div class="mob-sep"></div>
+    <button class="mob-btn" id="mob-rightclick" title="Right Click">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <rect x="5" y="2" width="10" height="16" rx="5"/>
+        <line x1="10" y1="2" x2="10" y2="10"/>
+        <line x1="10" y1="6" x2="10" y2="8" stroke-width="2.5"/>
+        <circle cx="13" cy="6" r="1.5" fill="currentColor"/>
+      </svg>
+    </button>
+    <button class="mob-btn" id="mob-keyboard" title="Keyboard">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <rect x="1" y="5" width="18" height="11" rx="2"/>
+        <line x1="5" y1="8.5" x2="7" y2="8.5"/><line x1="9" y1="8.5" x2="11" y2="8.5"/><line x1="13" y1="8.5" x2="15" y2="8.5"/>
+        <line x1="6" y1="12.5" x2="14" y2="12.5"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Virtual mouse pointer (always visible on touch devices) -->
+  <div id="touch-cursor" class="touch-cursor" hidden>
+    <svg class="cursor-arrow" viewBox="0 0 24 28" width="20" height="24">
+      <path d="M5.5 1.5L18.5 12.5l-5.8 1.3-3.2 6.2z" fill="white" stroke="#222" stroke-width="1.5" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <!-- Drop overlay -->
+  <div id="drop-overlay" class="drop-overlay" hidden>
+    <div class="drop-box">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      <p>Drop files to upload to Desktop</p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ Top bar ═══════════════════════════════════════ -->
+  <div id="topbar" class="topbar">
+    <div class="topbar-left">
+      <!-- Apple-style logo -->
+      <svg class="topbar-logo" viewBox="0 0 18 18" fill="none">
+        <rect width="18" height="18" rx="4.5" fill="var(--accent)"/>
+        <path d="M9 4L14.2 7.1V13.4L9 16.5L3.8 13.4V7.1Z" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"/>
+        <circle cx="9" cy="10.2" r="2.1" fill="white"/>
+      </svg>
+      <span class="topbar-brand">CloudDesktop</span>
+    </div>
+
+    <!-- Center: clock -->
+    <div class="topbar-clock" id="topbar-clock"></div>
+
+    <div class="topbar-right">
+      <span class="topbar-stat">
+        <span class="topbar-led" style="background:#30d158"></span>
+        CPU <span id="topbar-cpu">0%</span>
+      </span>
+      <span class="topbar-stat">
+        <span class="topbar-led" style="background:#0a84ff"></span>
+        RAM <span id="topbar-ram">0%</span>
+      </span>
+      <span class="topbar-stat">
+        <span class="topbar-led" style="background:#ff9f0a"></span>
+        Disk <span id="topbar-disk">0%</span>
+      </span>
+      <span class="topbar-sep"></span>
+      <span class="topbar-user" id="topbar-user"></span>
+      <span class="topbar-sep"></span>
+      <button class="topbar-btn" id="topbar-theme" title="Toggle theme" aria-label="Toggle theme">
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor">
+          <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 1.5v11A5.5 5.5 0 018 2.5z"/>
+        </svg>
+      </button>
+      <!-- Fullscreen -->
+      <button class="topbar-btn" id="topbar-fullscreen" title="Fullscreen" aria-label="Fullscreen">
+        <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <path d="M1 5V2h3M12 1h3v3M11 15h4v-4M5 15H1v-4"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Dock trigger (hover zone at very bottom) -->
+  <div id="dock-trigger" class="dock-trigger"></div>
+
+  <!-- ═══════════════════════════════════════ Dock ═══════════════════════════════════════ -->
+  <div id="dock" class="dock" role="toolbar" aria-label="Application dock">
+
+    <!-- ── App icons ── -->
+    <div class="dock-section dock-apps" id="dock-apps">
+
+      <!-- Terminal -->
+      <button class="dock-item dock-app" data-app="terminal" data-label="Terminal">
+        <div class="app-icon">
+          <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="term-bg" x1="0" y1="0" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#1a1a2e"/>
+                <stop offset="1" stop-color="#0d0d15"/>
+              </linearGradient>
+            </defs>
+            <rect width="60" height="60" fill="url(#term-bg)"/>
+            <rect x="5" y="8" width="50" height="44" rx="5" fill="#16213e"/>
+            <rect x="5" y="8" width="50" height="10" rx="5" fill="#0f3460"/>
+            <circle cx="13" cy="13" r="2.5" fill="#ff5f57"/>
+            <circle cx="21" cy="13" r="2.5" fill="#febc2e"/>
+            <circle cx="29" cy="13" r="2.5" fill="#28c840"/>
+            <path d="M12 30l10 7-10 7" stroke="#30d158" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="27" y1="44" x2="44" y2="44" stroke="#30d158" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </button>
+
+      <!-- Firefox -->
+      <button class="dock-item dock-app" data-app="firefox" data-label="Firefox">
+        <img class="app-icon app-icon-img" src="/img/firefox.svg" alt="Firefox" draggable="false">
+      </button>
+
+      <!-- Chrome -->
+      <button class="dock-item dock-app" data-app="chrome" data-label="Chrome">
+        <img class="app-icon app-icon-img" src="/img/chrome.svg" alt="Chrome" draggable="false">
+      </button>
+
+      <!-- Files -->
+      <button class="dock-item dock-app" data-app="filemanager" data-label="Files">
+        <div class="app-icon">
+          <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="60" height="60" fill="#1565c0"/>
+            <!-- Back folder -->
+            <rect x="7" y="28" width="46" height="24" rx="5" fill="#0d47a1"/>
+            <!-- Folder tab -->
+            <path d="M8 28V24Q8 20 12 20H27Q31 20 32.5 24L36 28Z" fill="#1565c0"/>
+            <!-- Front folder -->
+            <rect x="7" y="30" width="46" height="22" rx="5" fill="#1976d2"/>
+            <!-- Shine -->
+            <rect x="7" y="30" width="46" height="9" rx="5" fill="rgba(255,255,255,0.1)"/>
+            <!-- Paper stack inside -->
+            <rect x="18" y="36" width="24" height="3" rx="1.5" fill="rgba(255,255,255,0.5)"/>
+            <rect x="18" y="42" width="17" height="3" rx="1.5" fill="rgba(255,255,255,0.35)"/>
+            <!-- Small folder on top left of desktop -->
+            <rect x="8" y="10" width="18" height="14" rx="3" fill="#42a5f5"/>
+            <path d="M8 14V12Q8 10 10 10H14Q16 10 17 12L19 14Z" fill="#1e88e5"/>
+            <rect x="8" y="15" width="18" height="9" rx="3" fill="#64b5f6"/>
+          </svg>
+        </div>
+      </button>
+
+      <!-- Claude Code (shown if CLAUDE_DOCK=true) -->
+      <button class="dock-item dock-app dock-claude" data-app="claude" data-label="Claude Code" hidden>
+        <div class="app-icon">
+          <svg viewBox="0 0 512 510" xmlns="http://www.w3.org/2000/svg">
+            <rect width="512" height="510" rx="116" fill="#D97757"/>
+            <path fill="#FCF2EE" fill-rule="nonzero" d="M142.27 316.619l73.655-41.326 1.238-3.589-1.238-1.996-3.589-.001-12.31-.759-42.084-1.138-36.498-1.516-35.361-1.896-8.897-1.895-8.34-10.995.859-5.484 7.482-5.03 10.717.935 23.683 1.617 35.537 2.452 25.782 1.517 38.193 3.968h6.064l.86-2.451-2.073-1.517-1.618-1.517-36.776-24.922-39.81-26.338-20.852-15.166-11.273-7.683-5.687-7.204-2.451-15.721 10.237-11.273 13.75.935 3.513.936 13.928 10.716 29.749 23.027 38.848 28.612 5.687 4.727 2.275-1.617.278-1.138-2.553-4.271-21.13-38.193-22.546-38.848-10.035-16.101-2.654-9.655c-.935-3.968-1.617-7.304-1.617-11.374l11.652-15.823 6.445-2.073 15.545 2.073 6.547 5.687 9.655 22.092 15.646 34.78 24.265 47.291 7.103 14.028 3.791 12.992 1.416 3.968 2.449-.001v-2.275l1.997-26.641 3.69-32.707 3.589-42.084 1.239-11.854 5.863-14.206 11.652-7.683 9.099 4.348 7.482 10.716-1.036 6.926-4.449 28.915-8.72 45.294-5.687 30.331h3.313l3.792-3.791 15.342-20.372 25.782-32.227 11.374-12.789 13.27-14.129 8.517-6.724 16.1-.001 11.854 17.617-5.307 18.199-16.581 21.029-13.75 17.819-19.716 26.54-12.309 21.231 1.138 1.694 2.932-.278 44.536-9.479 24.062-4.347 28.714-4.928 12.992 6.066 1.416 6.167-5.106 12.613-30.71 7.583-36.018 7.204-53.636 12.689-.657.48.758.935 24.164 2.275 10.337.556h25.301l47.114 3.514 12.309 8.139 7.381 9.959-1.238 7.583-18.957 9.655-25.579-6.066-59.702-14.205-20.474-5.106-2.83-.001v1.694l17.061 16.682 31.266 28.233 39.152 36.397 1.997 8.999-5.03 7.102-5.307-.758-34.401-25.883-13.27-11.651-30.053-25.302-1.996-.001v2.654l6.926 10.136 36.574 54.975 1.895 16.859-2.653 5.485-9.479 3.311-10.414-1.895-21.408-30.054-22.092-33.844-17.819-30.331-2.173 1.238-10.515 113.261-4.929 5.788-11.374 4.348-9.478-7.204-5.03-11.652 5.03-23.027 6.066-30.052 4.928-23.886 4.449-29.674 2.654-9.858-.177-.657-2.173.278-22.37 30.71-34.021 45.977-26.919 28.815-6.445 2.553-11.173-5.789 1.037-10.337 6.243-9.2 37.257-47.392 22.47-29.371 14.508-16.961-.101-2.451h-.859l-98.954 64.251-17.618 2.275-7.583-7.103.936-11.652 3.589-3.791 29.749-20.474z"/>
+          </svg>
+        </div>
+      </button>
+
+      <!-- Claude Fast (shown if CLAUDE_DOCK=true) -->
+      <button class="dock-item dock-app dock-claude" data-app="claude-perf" data-label="Claude Fast" hidden>
+        <div class="app-icon">
+          <svg viewBox="0 0 512 510" xmlns="http://www.w3.org/2000/svg">
+            <rect width="512" height="510" rx="116" fill="#7c3aed"/>
+            <path fill="#F0E6FF" fill-rule="nonzero" d="M142.27 316.619l73.655-41.326 1.238-3.589-1.238-1.996-3.589-.001-12.31-.759-42.084-1.138-36.498-1.516-35.361-1.896-8.897-1.895-8.34-10.995.859-5.484 7.482-5.03 10.717.935 23.683 1.617 35.537 2.452 25.782 1.517 38.193 3.968h6.064l.86-2.451-2.073-1.517-1.618-1.517-36.776-24.922-39.81-26.338-20.852-15.166-11.273-7.683-5.687-7.204-2.451-15.721 10.237-11.273 13.75.935 3.513.936 13.928 10.716 29.749 23.027 38.848 28.612 5.687 4.727 2.275-1.617.278-1.138-2.553-4.271-21.13-38.193-22.546-38.848-10.035-16.101-2.654-9.655c-.935-3.968-1.617-7.304-1.617-11.374l11.652-15.823 6.445-2.073 15.545 2.073 6.547 5.687 9.655 22.092 15.646 34.78 24.265 47.291 7.103 14.028 3.791 12.992 1.416 3.968 2.449-.001v-2.275l1.997-26.641 3.69-32.707 3.589-42.084 1.239-11.854 5.863-14.206 11.652-7.683 9.099 4.348 7.482 10.716-1.036 6.926-4.449 28.915-8.72 45.294-5.687 30.331h3.313l3.792-3.791 15.342-20.372 25.782-32.227 11.374-12.789 13.27-14.129 8.517-6.724 16.1-.001 11.854 17.617-5.307 18.199-16.581 21.029-13.75 17.819-19.716 26.54-12.309 21.231 1.138 1.694 2.932-.278 44.536-9.479 24.062-4.347 28.714-4.928 12.992 6.066 1.416 6.167-5.106 12.613-30.71 7.583-36.018 7.204-53.636 12.689-.657.48.758.935 24.164 2.275 10.337.556h25.301l47.114 3.514 12.309 8.139 7.381 9.959-1.238 7.583-18.957 9.655-25.579-6.066-59.702-14.205-20.474-5.106-2.83-.001v1.694l17.061 16.682 31.266 28.233 39.152 36.397 1.997 8.999-5.03 7.102-5.307-.758-34.401-25.883-13.27-11.651-30.053-25.302-1.996-.001v2.654l6.926 10.136 36.574 54.975 1.895 16.859-2.653 5.485-9.479 3.311-10.414-1.895-21.408-30.054-22.092-33.844-17.819-30.331-2.173 1.238-10.515 113.261-4.929 5.788-11.374 4.348-9.478-7.204-5.03-11.652 5.03-23.027 6.066-30.052 4.928-23.886 4.449-29.674 2.654-9.858-.177-.657-2.173.278-22.37 30.71-34.021 45.977-26.919 28.815-6.445 2.553-11.173-5.789 1.037-10.337 6.243-9.2 37.257-47.392 22.47-29.371 14.508-16.961-.101-2.451h-.859l-98.954 64.251-17.618 2.275-7.583-7.103.936-11.652 3.589-3.791 29.749-20.474z"/>
+          </svg>
+        </div>
+      </button>
+
+      <!-- Text Editor -->
+      <button class="dock-item dock-app" data-app="editor" data-label="Text Editor">
+        <div class="app-icon">
+          <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="editor-bg" x1="0" y1="0" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#34a853"/>
+                <stop offset="1" stop-color="#1e6e33"/>
+              </linearGradient>
+            </defs>
+            <rect width="60" height="60" fill="url(#editor-bg)"/>
+            <!-- Paper sheet -->
+            <rect x="10" y="7" width="32" height="40" rx="3.5" fill="white" opacity="0.96"/>
+            <!-- Corner fold -->
+            <path d="M34 7L42 15H34Z" fill="#e0e0e0"/>
+            <path d="M34 7V15H42" fill="none" stroke="#bdbdbd" stroke-width="0.8"/>
+            <!-- Text lines -->
+            <line x1="16" y1="22" x2="36" y2="22" stroke="#4caf50" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="16" y1="29" x2="36" y2="29" stroke="#4caf50" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="16" y1="36" x2="28" y2="36" stroke="#4caf50" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- Pencil -->
+            <g transform="rotate(-40 50 46)">
+              <rect x="44" y="34" width="14" height="5.5" rx="2" fill="#fdd835"/>
+              <polygon points="44,39.5 41,43 47,43" fill="#ff8f00"/>
+              <rect x="44" y="34" width="1.5" height="5.5" fill="#f9a825"/>
+              <rect x="56.5" y="34" width="3" height="5.5" rx="1" fill="#bdbdbd"/>
+            </g>
+          </svg>
+        </div>
+      </button>
+
+    </div><!-- /dock-apps -->
+
+    <div class="dock-sep"></div>
+
+    <!-- ── Utilities ── -->
+    <div class="dock-section">
+
+      <button class="dock-item dock-util" id="btn-upload" data-label="Upload">
+        <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <path d="M19 14v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="15 7 11 3 7 7"/>
+          <line x1="11" y1="3" x2="11" y2="14"/>
+        </svg>
+      </button>
+
+      <button class="dock-item dock-util" id="btn-download" data-label="Download">
+        <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <path d="M19 14v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="7 10 11 14 15 10"/>
+          <line x1="11" y1="14" x2="11" y2="3"/>
+        </svg>
+      </button>
+
+      <button class="dock-item dock-util" id="btn-resolution" data-label="Resolution">
+        <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <rect x="1" y="3" width="20" height="13" rx="2"/>
+          <line x1="7" y1="20" x2="15" y2="20"/>
+          <line x1="11" y1="16" x2="11" y2="20"/>
+        </svg>
+      </button>
+
+    </div>
+
+    <div class="dock-sep"></div>
+
+    <!-- ── Controls ── -->
+    <div class="dock-section">
+
+      <button class="dock-item dock-util" id="btn-windows" data-label="Windows">
+        <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <rect x="2" y="2" width="8" height="6" rx="1.5"/>
+          <rect x="12" y="2" width="8" height="6" rx="1.5"/>
+          <rect x="2" y="14" width="8" height="6" rx="1.5"/>
+          <rect x="12" y="14" width="8" height="6" rx="1.5"/>
+        </svg>
+      </button>
+
+      <button class="dock-item dock-util" id="btn-keys" data-label="Ctrl+Alt+Del">
+        <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <rect x="1" y="5" width="20" height="12" rx="2"/>
+          <circle cx="5" cy="11" r="0.5" fill="currentColor"/>
+          <circle cx="9" cy="11" r="0.5" fill="currentColor"/>
+          <circle cx="13" cy="11" r="0.5" fill="currentColor"/>
+          <circle cx="17" cy="11" r="0.5" fill="currentColor"/>
+          <line x1="7" y1="14" x2="15" y2="14"/>
+        </svg>
+      </button>
+
+      <button class="dock-item dock-util" id="btn-restart" data-label="Restart Desktop">
+        <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <path d="M1 4v5h5"/>
+          <path d="M3.51 13a9 9 0 102.13-8.36L1 9"/>
+        </svg>
+      </button>
+
+      <button class="dock-item dock-util" id="btn-settings" data-label="Settings">
+        <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <circle cx="11" cy="11" r="3"/>
+          <path d="M19.4 14a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V20a2 2 0 01-4 0v-.09A1.65 1.65 0 008 18.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 003.68 14a1.65 1.65 0 00-1.51-1H2a2 2 0 010-4h.09A1.65 1.65 0 003.6 8a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 008 3.68a1.65 1.65 0 001-1.51V2a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 8a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>
+      </button>
+
+      <button class="dock-item dock-util" id="btn-logout" data-label="Logout">
+        <svg viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+
+    </div>
+
+  </div><!-- /dock -->
+
+  <!-- Window switcher popup -->
+  <div id="window-list" class="window-list" hidden>
+    <div class="window-list-header">Open Windows</div>
+    <div id="window-list-items" class="window-list-items">
+      <div class="window-list-empty">No windows open</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ Modals ═══════════════════════════════════════ -->
+
+  <!-- Resolution -->
+  <div id="resolution-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h3>Display Resolution</h3>
+      <div class="res-grid">
+        <button class="res-btn" data-w="1920" data-h="1080">1920 × 1080</button>
+        <button class="res-btn" data-w="1600" data-h="900">1600 × 900</button>
+        <button class="res-btn" data-w="1440" data-h="900">1440 × 900</button>
+        <button class="res-btn" data-w="1366" data-h="768">1366 × 768</button>
+        <button class="res-btn" data-w="1280" data-h="720">1280 × 720</button>
+        <button class="res-btn" data-w="0" data-h="0" id="res-fit">Fit Window</button>
+      </div>
+      <button id="resolution-close" class="btn-ghost" style="margin-top:14px">Close</button>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div id="settings-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h3>Settings</h3>
+      <div class="setting-row">
+        <span class="setting-label">Theme</span>
+        <button id="settings-theme" class="toggle-btn">Dark</button>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Dock Auto-hide</span>
+        <button id="settings-autohide" class="toggle-btn">Off</button>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Top Bar</span>
+        <button id="settings-topbar" class="toggle-btn">On</button>
+      </div>
+      <div class="setting-section-header">Account</div>
+      <div class="setting-row">
+        <span class="setting-label">Change Password</span>
+        <button id="settings-chpw" class="toggle-btn">Change</button>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">
+          Two-Factor Auth
+          <span class="otp-status-dot" id="otp-status-dot"></span>
+        </span>
+        <button id="settings-otp-toggle" class="toggle-btn">Enable</button>
+      </div>
+      <button id="settings-close" class="btn-ghost" style="margin-top:18px">Close</button>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div id="chpw-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h3>Change Password</h3>
+      <label class="field-label">Current Password</label>
+      <input type="password" id="chpw-old" placeholder="Current password" autocomplete="current-password">
+      <label class="field-label" style="margin-top:10px">New Password</label>
+      <input type="password" id="chpw-new" placeholder="New password (min 8 chars)" autocomplete="new-password">
+      <label class="field-label" style="margin-top:10px">Confirm New Password</label>
+      <input type="password" id="chpw-confirm" placeholder="Confirm new password" autocomplete="new-password">
+      <div id="chpw-error" class="modal-error" hidden></div>
+      <div id="chpw-success" class="modal-success" hidden></div>
+      <div class="modal-row" style="margin-top:14px">
+        <button id="chpw-submit" class="btn-primary">Update Password</button>
+        <button id="chpw-close" class="btn-ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OTP Setup Modal -->
+  <div id="otp-setup-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h3>Set Up Two-Factor Auth</h3>
+      <p class="otp-instructions">Scan this QR code with your authenticator app, then enter the 6-digit code below to verify.</p>
+      <div class="otp-qr" id="otp-qr-container">
+        <img id="otp-qr-img" alt="QR Code">
+      </div>
+      <label class="field-label">Manual Entry Key</label>
+      <div class="otp-secret-text" id="otp-secret-text"></div>
+      <label class="field-label" style="margin-top:12px">Verification Code</label>
+      <input type="text" id="otp-verify-code" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+      <div id="otp-setup-error" class="modal-error" hidden></div>
+      <div class="modal-row" style="margin-top:14px">
+        <button id="otp-verify-btn" class="btn-primary">Verify & Enable</button>
+        <button id="otp-setup-close" class="btn-ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OTP Disable Modal -->
+  <div id="otp-disable-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h3>Disable Two-Factor Auth</h3>
+      <p class="otp-instructions">Enter your password to disable two-factor authentication.</p>
+      <label class="field-label">Password</label>
+      <input type="password" id="otp-disable-pw" placeholder="Your password" autocomplete="current-password">
+      <div id="otp-disable-error" class="modal-error" hidden></div>
+      <div class="modal-row" style="margin-top:14px">
+        <button id="otp-disable-btn" class="btn-primary" style="background:#ff453a">Disable</button>
+        <button id="otp-disable-close" class="btn-ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Claude directory picker -->
+  <div id="claude-dir-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h3 id="claude-dir-title">Launch Claude Code</h3>
+      <label class="field-label">Working Directory</label>
+      <input type="text" id="claude-dir-input" value="/root" placeholder="/path/to/project"
+        spellcheck="false" autocomplete="off">
+      <div class="modal-row" style="margin-top:14px">
+        <button id="claude-dir-go" class="btn-primary">Launch</button>
+        <button id="claude-dir-close" class="btn-ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transfer Manager Panel (uploads + downloads) -->
+  <div id="upload-manager" class="upload-manager" hidden>
+    <div class="upload-manager-header">
+      <span class="upload-manager-title">Transfers</span>
+      <span class="upload-manager-count" id="upload-count"></span>
+      <div class="upload-manager-actions">
+        <button class="upload-manager-btn" id="upload-minimize" title="Minimize">
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="8" x2="13" y2="8"/></svg>
+        </button>
+        <button class="upload-manager-btn" id="upload-close-mgr" title="Close">
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="upload-manager-body" id="upload-list"></div>
+  </div>
+
+  <!-- Upload Modal -->
+  <div id="upload-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h3>Upload Files</h3>
+      <div class="upload-dropzone" id="upload-dropzone">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <p>Drop files or click to browse</p>
+        <input type="file" id="upload-file-input" multiple hidden>
+      </div>
+      <div class="upload-selected-files" id="upload-selected"></div>
+      <label class="field-label" style="margin-top:12px">Destination Directory</label>
+      <div class="upload-dir-row">
+        <input type="text" id="upload-dest-input" value="/root/Desktop" spellcheck="false" autocomplete="off">
+        <button id="upload-browse-dir" class="btn-ghost" style="padding:10px 12px">Browse</button>
+      </div>
+      <div class="modal-row" style="margin-top:14px">
+        <button id="upload-start-btn" class="btn-primary" disabled>Upload</button>
+        <button id="upload-cancel-btn" class="btn-ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Browser Modal (for downloads) -->
+  <div id="filebrowser-modal" class="modal" hidden>
+    <div class="modal-card" style="max-width:500px">
+      <h3>Download Files</h3>
+      <div class="fb-nav">
+        <button class="fb-nav-btn" id="fb-back" title="Back">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 2L4 8l6 6"/></svg>
+        </button>
+        <input type="text" id="fb-path-input" class="fb-path-input" value="/root" spellcheck="false" autocomplete="off">
+        <button class="fb-nav-btn" id="fb-go" title="Go">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+        </button>
+      </div>
+      <div class="fb-list" id="fb-list"></div>
+      <button id="fb-close" class="btn-ghost" style="margin-top:14px">Close</button>
+    </div>
+  </div>
+
+  <!-- Directory Browser Modal -->
+  <div id="dir-modal" class="modal" hidden>
+    <div class="modal-card">
+      <h3>Choose Directory</h3>
+      <div class="dir-path" id="dir-path">/root</div>
+      <div class="dir-list" id="dir-list"></div>
+      <div class="modal-row" style="margin-top:14px">
+        <button id="dir-select-btn" class="btn-primary">Select</button>
+        <button id="dir-cancel-btn" class="btn-ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/desktop.js?v=9"></script>
+</body>
+</html>

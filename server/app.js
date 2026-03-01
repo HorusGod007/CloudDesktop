@@ -1,0 +1,92 @@
+const http = require('http');
+const path = require('path');
+const express = require('express');
+const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
+const config = require('./config');
+const authRoutes = require('./routes/auth');
+const desktopRoutes = require('./routes/desktop');
+const setupWsProxy = require('./ws-proxy');
+
+const app = express();
+
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://static.cloudflareinsights.com"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "wss:", "ws:"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+
+// Middleware
+app.use(express.json());
+app.use(cookieParser());
+
+// Trust proxy (behind nginx)
+app.set('trust proxy', 1);
+
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/desktop', desktopRoutes);
+
+// Serve noVNC vendor files
+app.use('/vendor/novnc', express.static(
+  path.join(__dirname, '..', 'client', 'vendor', 'novnc'),
+  { maxAge: '7d' }
+));
+
+// Serve client static files (no cache for CSS/JS so updates are immediate)
+app.use(express.static(path.join(__dirname, '..', 'client'), {
+  index: false,
+  etag: true,
+  lastModified: true,
+  maxAge: 0,
+}));
+
+// SPA routing: serve app.js routing page for root
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'client', 'login.html'));
+});
+
+app.get('/desktop', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'client', 'desktop.html'));
+});
+
+app.get('/login', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'client', 'login.html'));
+});
+
+// Health check
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
+});
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// Setup WebSocket proxy for VNC
+setupWsProxy(server);
+
+// Start server
+server.listen(config.PORT, config.HOST, () => {
+  console.log(`CloudDesktop server listening on ${config.HOST}:${config.PORT}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down...');
+  server.close(() => process.exit(0));
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down...');
+  server.close(() => process.exit(0));
+});

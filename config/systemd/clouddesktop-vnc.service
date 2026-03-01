@@ -1,0 +1,21 @@
+[Unit]
+Description=CloudDesktop TigerVNC Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+ExecStart=/bin/bash /opt/OS/scripts/start-vnc.sh
+ExecStop=/bin/sh -c 'kill $(cat /tmp/.X1-lock 2>/dev/null) 2>/dev/null; rm -f /tmp/.X1-lock /tmp/.X11-unix/X1'
+
+Restart=on-failure
+RestartSec=5
+
+Environment=HOME=/root
+Environment=USER=root
+Environment=DISPLAY=:1
+
+[Install]
+WantedBy=multi-user.target

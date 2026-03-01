@@ -1,0 +1,31 @@
+[Unit]
+Description=CloudDesktop Web Backend
+After=network.target clouddesktop-ws.service
+Requires=clouddesktop-ws.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/OS/server
+
+ExecStartPre=/bin/mkdir -p /var/log/clouddesktop
+ExecStart=/usr/bin/node app.js
+
+Restart=on-failure
+RestartSec=5
+KillMode=process
+Delegate=yes
+OOMPolicy=continue
+
+Environment=NODE_ENV=production
+Environment=HOME=/root
+EnvironmentFile=/opt/OS/data/.env
+
+StandardOutput=append:/var/log/clouddesktop/web.log
+StandardError=append:/var/log/clouddesktop/web.log
+
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target
