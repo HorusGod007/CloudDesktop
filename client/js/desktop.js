@@ -1546,6 +1546,19 @@ if (isIOS) {
   setVH();
 }
 
+// Auto-fullscreen for regular browsers (not PWA) — hides toolbar on first click
+if (!isStandalone) {
+  function enterFullscreenOnce() {
+    const el = document.documentElement;
+    const go = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+    if (go) go.call(el).catch(() => {});
+    document.removeEventListener('click', enterFullscreenOnce);
+    document.removeEventListener('touchstart', enterFullscreenOnce);
+  }
+  document.addEventListener('click', enterFullscreenOnce, { once: true });
+  document.addEventListener('touchstart', enterFullscreenOnce, { once: true });
+}
+
 // PWA standalone mode enhancements
 if (isStandalone) {
   document.body.classList.add('standalone-app');
