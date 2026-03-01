@@ -84,9 +84,22 @@ server.listen(config.PORT, config.HOST, () => {
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down...');
   server.close(() => process.exit(0));
+  // Force exit if close hangs
+  setTimeout(() => process.exit(0), 5000);
 });
 
 process.on('SIGINT', () => {
   console.log('SIGINT received, shutting down...');
   server.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 5000);
+});
+
+// Crash recovery — log and let systemd restart
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err);
 });
