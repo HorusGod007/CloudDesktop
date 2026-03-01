@@ -1026,20 +1026,39 @@ body.mobile-fullscreen #vnc-container { inset: 0 !important; }
 /* ═══════════════════════════════════════════════════════════
    Mobile Fullscreen (standalone / PWA)
    ═══════════════════════════════════════════════════════════ */
-@media (display-mode: fullscreen), (display-mode: standalone) {
+/* Mobile standalone: hide topbar, full bleed */
+@media (display-mode: standalone) and (max-width: 600px),
+       (display-mode: fullscreen) and (max-width: 600px) {
   .topbar { display: none !important; }
   #vnc-container { inset: 0 !important; }
-  /* Extra padding for iPhone notch/dynamic island */
   .dock {
     padding-top: max(6px, env(safe-area-inset-top, 0px));
   }
 }
 
+/* Desktop standalone (PWA window): keep topbar, remove any browser padding */
+@media (display-mode: standalone) and (min-width: 601px) {
+  html, body { height: 100vh; overflow: hidden; }
+}
+
+/* Window Controls Overlay API (Chromium PWA title bar) */
+@media (display-mode: window-controls-overlay) {
+  .topbar {
+    padding-left: env(titlebar-area-x, 0px);
+    width: env(titlebar-area-width, 100%);
+    height: env(titlebar-area-height, 32px);
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+  .topbar-btn, .topbar-stat, .topbar-user { app-region: no-drag; -webkit-app-region: no-drag; }
+  #vnc-container { top: env(titlebar-area-height, 32px) !important; }
+}
+
 /* Standalone app class (set by JS) */
 body.standalone-app {
-  /* Prevent text selection outside of inputs */
   -webkit-user-select: none;
   user-select: none;
+  overflow: hidden;
 }
 body.standalone-app input,
 body.standalone-app textarea {

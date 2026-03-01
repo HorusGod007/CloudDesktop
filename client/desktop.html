@@ -7,10 +7,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#000000">
+  <meta name="msapplication-TileColor" content="#000000">
+  <meta name="msapplication-navbutton-color" content="#000000">
   <link rel="manifest" href="/manifest.json">
-  <link rel="apple-touch-icon" href="/icon-192.svg">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
   <title>CloudDesktop</title>
-  <link rel="stylesheet" href="/css/desktop.css?v=9">
+  <link rel="stylesheet" href="/css/desktop.css?v=10">
 </head>
 <body>
 
@@ -524,6 +527,7 @@
     </div>
   </div>
 
-  <script type="module" src="/js/desktop.js?v=9"></script>
+  <script type="module" src="/js/desktop.js?v=10"></script>
+  <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');</script>
 </body>
 </html>

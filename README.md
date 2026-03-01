@@ -30,7 +30,7 @@ CloudDesktop transforms a bare Linux VPS into a complete browser-based desktop e
 - **Shared Session** — All devices connect to the same live desktop. No sync needed
 - **Trackpad Mode** — RDP-style virtual cursor on mobile. No awkward touch-to-click
 - **Auto-Fit Resolution** — Screen adjusts automatically to your device, orientation changes, and fullscreen
-- **PWA Support** — Install as a native app on iOS, Android, and desktop
+- **PWA Support** — Install as a native app on Windows, macOS, Linux, iOS, and Android. No browser toolbar — runs like a real desktop app
 - **Claude Code Integration** — Built-in Claude Code CLI support with dedicated dock icons. Launch Claude Code or Claude Fast directly from your desktop
 - **Secure Login** — Password auth with optional TOTP two-factor authentication
 - **File Transfer** — Upload and download files with chunked transfer, pause/resume support
@@ -121,6 +121,23 @@ sudo bash /opt/OS/uninstall.sh
 
 ---
 
+## Install as App (PWA)
+
+CloudDesktop can be installed as a standalone app — no browser toolbar, runs like a native desktop application.
+
+**Windows / macOS / Linux (Chrome/Edge):**
+1. Open CloudDesktop in Chrome or Edge
+2. Click the install icon in the address bar (or Menu → "Install CloudDesktop")
+3. Done — launches as its own window with no browser UI
+
+**iPhone / iPad:**
+1. Open in Safari → Tap Share → "Add to Home Screen"
+
+**Android:**
+1. Open in Chrome → Tap "Add to Home Screen" or the install banner
+
+---
+
 ## Mobile Experience
 
 CloudDesktop is built mobile-first:
@@ -129,6 +146,7 @@ CloudDesktop is built mobile-first:
 - On-screen keyboard
 - Fullscreen PWA mode with no browser chrome
 - Auto-resolution fitting for any screen size
+- Resolution auto-adjusts on orientation change
 
 ---
 

@@ -1546,13 +1546,25 @@ if (isIOS) {
   setVH();
 }
 
-// In standalone mode, prevent back-navigation gestures and ensure full screen usage
+// PWA standalone mode enhancements
 if (isStandalone) {
   document.body.classList.add('standalone-app');
   // Prevent accidental navigation
   window.addEventListener('beforeunload', (e) => {
     if (rfb) { e.preventDefault(); }
   });
+  // Disable context menu in PWA (right-click handled by VNC)
+  document.addEventListener('contextmenu', (e) => {
+    if (!e.target.closest('input, textarea, .modal')) e.preventDefault();
+  });
+  // Auto-fit resolution when PWA window is resized (Windows/Mac/Linux desktop PWA)
+  if (!isTouch) {
+    let pwaResizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(pwaResizeTimer);
+      pwaResizeTimer = setTimeout(() => { if (rfb) autoFitResolution(); }, 500);
+    });
+  }
 }
 
 // Auto-fit VNC resolution to match current viewport

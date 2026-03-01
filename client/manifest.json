@@ -1,14 +1,38 @@
 {
   "name": "CloudDesktop",
   "short_name": "Desktop",
-  "description": "Browser-based cloud desktop",
+  "description": "Turn any Linux VPS into a full desktop GUI — accessible from any device, anywhere.",
   "start_url": "/desktop",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "fullscreen"],
   "orientation": "any",
   "background_color": "#000000",
   "theme_color": "#1c1c1e",
+  "categories": ["utilities", "productivity"],
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
   "icons": [
-    { "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" },
-    { "src": "/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml" }
+    { "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "CloudDesktop — Full Desktop View"
+    },
+    {
+      "src": "/screenshots/login.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "CloudDesktop — Login"
+    }
   ]
 }
