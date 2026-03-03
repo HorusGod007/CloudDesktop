@@ -1,4 +1,5 @@
 const { verifyToken } = require('../auth');
+const sessions = require('../sessions');
 
 function authenticate(req, res, next) {
   let token = null;
@@ -28,6 +29,7 @@ function authenticate(req, res, next) {
   try {
     const decoded = verifyToken(token);
     req.user = decoded;
+    sessions.touch(req);
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid or expired token' });

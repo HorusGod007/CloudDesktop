@@ -3,6 +3,8 @@ const config = require('../config');
 const { verifyPassword, hashPassword, generateToken, generateWsTicket, generateOtpSecret, verifyOtp } = require('../auth');
 const authenticate = require('../middleware/authenticate');
 const rateLimit = require('express-rate-limit');
+const audit = require('../audit');
+const sessions = require('../sessions');
 
 const router = express.Router();
 
@@ -51,12 +53,14 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     if (username !== config.USERNAME) {
       console.log(`AUTH_FAILURE: user=${username} ip=${req.ip}`);
+      audit.log('login_failed', { username, ip: req.ip, reason: 'invalid_username' });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const valid = await verifyPassword(password, config.PASSWORD_HASH);
     if (!valid) {
       console.log(`AUTH_FAILURE: user=${username} ip=${req.ip}`);
+      audit.log('login_failed', { username, ip: req.ip, reason: 'invalid_password' });
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -69,6 +73,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     setCookie(res, token);
 
     console.log(`AUTH_SUCCESS: user=${username} ip=${req.ip}`);
+    audit.log('login', { username, ip: req.ip });
     res.json({ ok: true, username });
   } catch (err) {
     console.error('Login error:', err.message);
@@ -104,6 +109,7 @@ router.post('/login/otp', loginLimiter, async (req, res) => {
 
     if (!verifyOtp(otp, config.OTP_SECRET)) {
       console.log(`AUTH_FAILURE: user=${username} ip=${req.ip} reason=invalid_otp`);
+      audit.log('login_failed', { username, ip: req.ip, reason: 'invalid_otp' });
       return res.status(401).json({ error: 'Invalid OTP code' });
     }
 
@@ -111,6 +117,7 @@ router.post('/login/otp', loginLimiter, async (req, res) => {
     setCookie(res, token);
 
     console.log(`AUTH_SUCCESS: user=${username} ip=${req.ip} otp=verified`);
+    audit.log('login', { username, ip: req.ip, otp: true });
     res.json({ ok: true, username });
   } catch (err) {
     console.error('OTP login error:', err.message);
@@ -119,7 +126,9 @@ router.post('/login/otp', loginLimiter, async (req, res) => {
 });
 
 // POST /api/auth/logout
-router.post('/logout', (_req, res) => {
+router.post('/logout', (req, res) => {
+  audit.log('logout', { ip: req.ip });
+  sessions.remove(req);
   res.clearCookie('token', { path: '/' });
   res.json({ ok: true });
 });
@@ -163,6 +172,7 @@ router.post('/change-password', authenticate, async (req, res) => {
     config.updateEnv('PASSWORD_HASH', hash);
     config.reloadConfig();
 
+    audit.log('password_changed', { username: req.user.sub, ip: req.ip });
     res.json({ ok: true });
   } catch (err) {
     console.error('Change password error:', err.message);
@@ -207,6 +217,7 @@ router.post('/otp/enable', authenticate, async (req, res) => {
     config.reloadConfig();
     pendingOtpSecrets.delete(username);
 
+    audit.log('otp_enabled', { username, ip: req.ip });
     res.json({ ok: true });
   } catch (err) {
     console.error('OTP enable error:', err.message);
@@ -234,6 +245,7 @@ router.post('/otp/disable', authenticate, async (req, res) => {
     config.updateEnv('OTP_SECRET', '');
     config.reloadConfig();
 
+    audit.log('otp_disabled', { username: req.user.sub, ip: req.ip });
     res.json({ ok: true });
   } catch (err) {
     console.error('OTP disable error:', err.message);

@@ -1,12 +1,16 @@
 const http = require('http');
 const path = require('path');
+const url = require('url');
 const express = require('express');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const config = require('./config');
 const authRoutes = require('./routes/auth');
 const desktopRoutes = require('./routes/desktop');
-const setupWsProxy = require('./ws-proxy');
+const adminRoutes = require('./routes/admin');
+const terminalRoutes = require('./routes/terminal');
+const { createVncWss, authenticateWs } = require('./ws-proxy');
+const { createTerminalWss } = require('./ws-terminal');
 
 const app = express();
 
@@ -19,7 +23,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "data:", "blob:"],
       connectSrc: ["'self'", "wss:", "ws:"],
-      frameSrc: ["'none'"],
+      frameSrc: ["'self'"],
       objectSrc: ["'none'"],
     },
   },
@@ -36,10 +40,16 @@ app.set('trust proxy', 1);
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/desktop', desktopRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/terminal', terminalRoutes);
 
-// Serve noVNC vendor files
+// Serve vendor files (noVNC + xterm)
 app.use('/vendor/novnc', express.static(
   path.join(__dirname, '..', 'client', 'vendor', 'novnc'),
+  { maxAge: '7d' }
+));
+app.use('/vendor/xterm', express.static(
+  path.join(__dirname, '..', 'client', 'vendor', 'xterm'),
   { maxAge: '7d' }
 ));
 
@@ -64,6 +74,10 @@ app.get('/login', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'client', 'login.html'));
 });
 
+app.get('/admin', (_req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'client', 'admin.html'));
+});
+
 // Health check
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
@@ -72,8 +86,41 @@ app.get('/health', (_req, res) => {
 // Create HTTP server
 const server = http.createServer(app);
 
-// Setup WebSocket proxy for VNC
-setupWsProxy(server);
+// ── WebSocket upgrade dispatcher ─────────────────────────────
+// /websockify → VNC proxy
+// /terminal   → Terminal PTY
+const vncWss = createVncWss();
+const terminalWss = createTerminalWss();
+
+server.on('upgrade', (req, socket, head) => {
+  const parsed = url.parse(req.url, true);
+
+  if (parsed.pathname === '/websockify') {
+    if (!authenticateWs(req, parsed.query)) {
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+    vncWss.handleUpgrade(req, socket, head, (ws) => {
+      vncWss.emit('connection', ws, req);
+    });
+    return;
+  }
+
+  if (parsed.pathname === '/terminal') {
+    if (!authenticateWs(req, parsed.query)) {
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+    terminalWss.handleUpgrade(req, socket, head, (ws) => {
+      terminalWss.emit('connection', ws, req);
+    });
+    return;
+  }
+
+  socket.destroy();
+});
 
 // Start server
 server.listen(config.PORT, config.HOST, () => {

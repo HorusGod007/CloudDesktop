@@ -1,10 +1,41 @@
 const net = require('net');
 const { WebSocketServer } = require('ws');
-const url = require('url');
 const config = require('./config');
 const { consumeWsTicket, verifyToken } = require('./auth');
 
-function setupWsProxy(server) {
+function parseCookies(cookieHeader) {
+  const cookies = {};
+  if (!cookieHeader) return cookies;
+  cookieHeader.split(';').forEach((cookie) => {
+    const [name, ...rest] = cookie.split('=');
+    cookies[name.trim()] = rest.join('=').trim();
+  });
+  return cookies;
+}
+
+function authenticateWs(req, query) {
+  // Authenticate via ticket (preferred) or token
+  if (query.ticket) {
+    const username = consumeWsTicket(query.ticket);
+    if (username) return true;
+  }
+
+  if (query.token) {
+    try { verifyToken(query.token); return true; } catch {}
+  }
+
+  // Check cookie as fallback
+  if (req.headers.cookie) {
+    const cookies = parseCookies(req.headers.cookie);
+    if (cookies.token) {
+      try { verifyToken(cookies.token); return true; } catch {}
+    }
+  }
+
+  return false;
+}
+
+function createVncWss() {
   const wss = new WebSocketServer({
     noServer: true,
     // Accept the 'binary' subprotocol that noVNC requests
@@ -12,58 +43,6 @@ function setupWsProxy(server) {
       if (protocols.has('binary')) return 'binary';
       return false;
     },
-  });
-
-  server.on('upgrade', (req, socket, head) => {
-    const parsed = url.parse(req.url, true);
-
-    // Only handle /websockify path
-    if (parsed.pathname !== '/websockify') {
-      socket.destroy();
-      return;
-    }
-
-    // Authenticate via ticket (preferred) or token
-    let authenticated = false;
-
-    if (parsed.query.ticket) {
-      const username = consumeWsTicket(parsed.query.ticket);
-      if (username) {
-        authenticated = true;
-      }
-    }
-
-    if (!authenticated && parsed.query.token) {
-      try {
-        verifyToken(parsed.query.token);
-        authenticated = true;
-      } catch (e) {
-        // invalid token
-      }
-    }
-
-    // Check cookie as fallback
-    if (!authenticated && req.headers.cookie) {
-      const cookies = parseCookies(req.headers.cookie);
-      if (cookies.token) {
-        try {
-          verifyToken(cookies.token);
-          authenticated = true;
-        } catch (e) {
-          // invalid token
-        }
-      }
-    }
-
-    if (!authenticated) {
-      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-      socket.destroy();
-      return;
-    }
-
-    wss.handleUpgrade(req, socket, head, (ws) => {
-      wss.emit('connection', ws, req);
-    });
   });
 
   wss.on('connection', (ws) => {
@@ -114,16 +93,8 @@ function setupWsProxy(server) {
       target.destroy();
     });
   });
+
+  return wss;
 }
 
-function parseCookies(cookieHeader) {
-  const cookies = {};
-  if (!cookieHeader) return cookies;
-  cookieHeader.split(';').forEach((cookie) => {
-    const [name, ...rest] = cookie.split('=');
-    cookies[name.trim()] = rest.join('=').trim();
-  });
-  return cookies;
-}
-
-module.exports = setupWsProxy;
+module.exports = { createVncWss, authenticateWs };

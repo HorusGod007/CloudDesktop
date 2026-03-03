@@ -7,6 +7,7 @@ const fs = require('fs');
 const multer = require('multer');
 const config = require('../config');
 const authenticate = require('../middleware/authenticate');
+const audit = require('../audit');
 
 const router = express.Router();
 
@@ -127,6 +128,7 @@ router.post('/resolution', (req, res) => {
     env: X_ENV,
   }, (err) => {
     if (!err) {
+      audit.log('resolution_change', { width: w, height: h, ip: req.ip });
       return res.json({ ok: true, width: w, height: h });
     }
 
@@ -163,7 +165,8 @@ router.post('/resolution', (req, res) => {
 });
 
 // POST /api/desktop/restart
-router.post('/restart', (_req, res) => {
+router.post('/restart', (req, res) => {
+  audit.log('service_restart', { service: 'clouddesktop-vnc', ip: req.ip });
   execFile('systemctl', ['restart', 'clouddesktop-vnc'], (err) => {
     if (err) {
       return res.status(500).json({ error: 'Failed to restart VNC' });
@@ -226,6 +229,7 @@ router.post('/upload', upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file provided' });
   }
+  audit.log('file_upload', { filename: req.file.filename, size: req.file.size, ip: req.ip });
   res.json({ ok: true, filename: req.file.filename, size: req.file.size });
 });
 
@@ -400,6 +404,7 @@ router.post('/launch', (req, res) => {
 
   // Give it a moment to see if it fails immediately
   setTimeout(() => {
+    audit.log('app_launch', { app, cwd: workDir, ip: req.ip });
     res.json({ ok: true, app });
   }, 300);
 });

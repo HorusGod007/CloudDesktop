@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CloudDesktop — Control Panel</title>
+  <link rel="stylesheet" href="/css/admin.css?v=1">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+</head>
+<body>
+  <!-- Header -->
+  <header class="admin-header">
+    <div class="admin-header-left">
+      <svg class="admin-logo" viewBox="0 0 18 18" fill="none">
+        <rect width="18" height="18" rx="4.5" fill="var(--accent)"/>
+        <path d="M9 4L14.2 7.1V13.4L9 16.5L3.8 13.4V7.1Z" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.2"/>
+        <circle cx="9" cy="10.2" r="2.1" fill="white"/>
+      </svg>
+      <h1>Control Panel</h1>
+    </div>
+    <div class="admin-header-right">
+      <button class="admin-btn-icon" id="btn-theme" title="Toggle theme">
+        <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+          <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 1.5v11A5.5 5.5 0 018 2.5z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Dashboard Grid -->
+  <main class="admin-grid">
+
+    <!-- System Info Card -->
+    <section class="admin-card card-sysinfo">
+      <h2>System Information</h2>
+      <div class="sysinfo-grid" id="sysinfo-grid">
+        <div class="sysinfo-item"><span class="sysinfo-label">Hostname</span><span class="sysinfo-value" id="si-hostname">—</span></div>
+        <div class="sysinfo-item"><span class="sysinfo-label">OS</span><span class="sysinfo-value" id="si-os">—</span></div>
+        <div class="sysinfo-item"><span class="sysinfo-label">Kernel</span><span class="sysinfo-value" id="si-kernel">—</span></div>
+        <div class="sysinfo-item"><span class="sysinfo-label">CPU</span><span class="sysinfo-value" id="si-cpu">—</span></div>
+        <div class="sysinfo-item"><span class="sysinfo-label">Cores</span><span class="sysinfo-value" id="si-cores">—</span></div>
+        <div class="sysinfo-item"><span class="sysinfo-label">Memory</span><span class="sysinfo-value" id="si-memory">—</span></div>
+        <div class="sysinfo-item"><span class="sysinfo-label">Uptime</span><span class="sysinfo-value" id="si-uptime">—</span></div>
+        <div class="sysinfo-item"><span class="sysinfo-label">Architecture</span><span class="sysinfo-value" id="si-arch">—</span></div>
+      </div>
+    </section>
+
+    <!-- Live Stats Card -->
+    <section class="admin-card card-stats">
+      <h2>Live Stats</h2>
+      <div class="gauges-row">
+        <div class="gauge-box">
+          <canvas id="gauge-cpu" width="120" height="120"></canvas>
+          <div class="gauge-label">CPU</div>
+          <div class="gauge-value" id="gv-cpu">0%</div>
+        </div>
+        <div class="gauge-box">
+          <canvas id="gauge-ram" width="120" height="120"></canvas>
+          <div class="gauge-label">RAM</div>
+          <div class="gauge-value" id="gv-ram">0%</div>
+        </div>
+        <div class="gauge-box">
+          <canvas id="gauge-disk" width="120" height="120"></canvas>
+          <div class="gauge-label">Disk</div>
+          <div class="gauge-value" id="gv-disk">0%</div>
+        </div>
+      </div>
+      <div class="chart-section">
+        <h3>Network Throughput</h3>
+        <canvas id="net-chart" width="600" height="140"></canvas>
+      </div>
+      <div class="stats-footer">
+        <span>Load: <span id="stat-load">—</span></span>
+        <span>Net RX: <span id="stat-netrx">—</span></span>
+        <span>Net TX: <span id="stat-nettx">—</span></span>
+      </div>
+    </section>
+
+    <!-- Services Card -->
+    <section class="admin-card card-services">
+      <h2>Services</h2>
+      <table class="admin-table">
+        <thead>
+          <tr><th>Service</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody id="services-body">
+          <tr><td colspan="3" class="table-loading">Loading…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Active Sessions Card -->
+    <section class="admin-card card-sessions">
+      <h2>Active Sessions</h2>
+      <table class="admin-table">
+        <thead>
+          <tr><th>IP</th><th>User Agent</th><th>Login Time</th><th>Last Activity</th></tr>
+        </thead>
+        <tbody id="sessions-body">
+          <tr><td colspan="4" class="table-loading">Loading…</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Audit Log Card -->
+    <section class="admin-card card-audit">
+      <h2>Audit Log</h2>
+      <div class="audit-controls">
+        <input type="text" id="audit-search" placeholder="Search logs…" class="audit-input">
+        <select id="audit-filter" class="audit-select">
+          <option value="">All Actions</option>
+          <option value="login">Login</option>
+          <option value="login_failed">Login Failed</option>
+          <option value="logout">Logout</option>
+          <option value="password_changed">Password Changed</option>
+          <option value="otp_enabled">OTP Enabled</option>
+          <option value="otp_disabled">OTP Disabled</option>
+          <option value="file_upload">File Upload</option>
+          <option value="app_launch">App Launch</option>
+          <option value="service_restart">Service Restart</option>
+          <option value="resolution_change">Resolution Change</option>
+          <option value="terminal_open">Terminal Open</option>
+          <option value="terminal_close">Terminal Close</option>
+        </select>
+      </div>
+      <table class="admin-table audit-table">
+        <thead>
+          <tr><th>Time</th><th>Action</th><th>Details</th></tr>
+        </thead>
+        <tbody id="audit-body">
+          <tr><td colspan="3" class="table-loading">Loading…</td></tr>
+        </tbody>
+      </table>
+      <div class="audit-footer">
+        <span id="audit-count"></span>
+        <button class="admin-btn-sm" id="audit-more">Load More</button>
+      </div>
+    </section>
+
+  </main>
+
+  <script type="module" src="/js/admin.js?v=1"></script>
+</body>
+</html>

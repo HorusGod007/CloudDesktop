@@ -1,4 +1,5 @@
 import RFB from '/vendor/novnc/core/rfb.js';
+import { notify, init as initNotifications } from '/js/notifications.js';
 
 const statusOverlay = document.getElementById('status-overlay');
 const statusText    = document.getElementById('status-text');
@@ -16,6 +17,8 @@ const downloads = new Map();
 
 let rfb = null;
 let reconnectTimer = null;
+
+initNotifications();
 
 // ── Device detection ────────────────────────────────────────
 const isTouch   = navigator.maxTouchPoints > 0 || window.matchMedia('(hover: none)').matches;
@@ -75,11 +78,16 @@ async function connect() {
   }
 }
 
-function onConnect() { hideStatus(); rfb.focus(); }
+function onConnect() {
+  hideStatus();
+  rfb.focus();
+  notify('Connected to desktop', 'success', 3000);
+}
 
 function onDisconnect(e) {
   const clean = (e.detail || {}).clean;
   showStatus(clean ? 'Disconnected from desktop.' : 'Connection lost. Reconnecting…');
+  notify(clean ? 'Disconnected from desktop' : 'Connection lost — reconnecting…', 'warning');
   scheduleReconnect();
 }
 
@@ -716,6 +724,28 @@ document.getElementById('btn-restart').addEventListener('click', async () => {
   setTimeout(connect, 4500);
 });
 
+// ── Admin panel ──────────────────────────────────────────────
+
+const adminModal  = document.getElementById('admin-modal');
+const adminIframe = document.getElementById('admin-iframe');
+
+function openAdminPanel() {
+  if (adminModal && adminIframe) {
+    adminIframe.src = '/admin';
+    adminModal.hidden = false;
+  }
+}
+function closeAdminPanel() {
+  if (adminModal) adminModal.hidden = true;
+  if (adminIframe) adminIframe.src = 'about:blank';
+}
+
+const btnAdmin = document.getElementById('btn-admin');
+if (btnAdmin) btnAdmin.addEventListener('click', openAdminPanel);
+
+const btnAdminClose = document.getElementById('admin-modal-close');
+if (btnAdminClose) btnAdminClose.addEventListener('click', closeAdminPanel);
+
 // ── Logout ──────────────────────────────────────────────────
 
 document.getElementById('btn-logout').addEventListener('click', async () => {
@@ -925,6 +955,7 @@ function sendChunk(upload) {
         upload.bytesUploaded = upload.totalSize;
         updateUploadItem(upload);
         updateTransferCount();
+        notify(`Upload complete: ${upload.filename}`, 'success');
         return;
       }
       sendChunk(upload);
@@ -1264,6 +1295,7 @@ async function fetchDownloadChunks(dl) {
     dl.chunks = [];
     updateDownloadItem(dl);
     updateTransferCount();
+    notify(`Download complete: ${dl.filename}`, 'success');
   } catch (err) {
     if (err.name === 'AbortError') return;
     dl.status = 'error';

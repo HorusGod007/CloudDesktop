@@ -15,6 +15,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
+    "node-pty": "^1.1.0",
     "otpauth": "^9.4.2",
     "qrcode": "^1.5.4",
     "ws": "^8.18.0"
