@@ -69,6 +69,7 @@ function setupWsProxy(server) {
   wss.on('connection', (ws) => {
     // Connect directly to VNC server (raw TCP RFB protocol)
     const target = net.createConnection(config.VNC_PORT, config.VNC_HOST, () => {
+      target.setNoDelay(true);
       console.log('WS proxy: connected to VNC backend');
     });
 

@@ -62,8 +62,8 @@ async function connect() {
     rfb.resizeSession  = true;
     rfb.clipViewport   = false;
     rfb.showDotCursor  = true;
-    rfb.qualityLevel   = 6;
-    rfb.compressionLevel = 2;
+    rfb.qualityLevel   = 5;
+    rfb.compressionLevel = 6;
 
     rfb.addEventListener('connect',             onConnect);
     rfb.addEventListener('disconnect',          onDisconnect);
@@ -1383,7 +1383,7 @@ let currentFbDir = SERVER_HOME;
 const fbHistory = [];
 
 document.getElementById('btn-download').addEventListener('click', () => {
-  currentFbDir = SERVER_HOME;
+  currentFbDir = localStorage.getItem('fb-last-dir') || SERVER_HOME;
   fbHistory.length = 0;
   loadFileBrowser(currentFbDir);
   filebrowserModal.hidden = false;
@@ -1465,6 +1465,7 @@ async function loadFileBrowser(dir, skipHistory) {
   }
   currentFbDir = dir;
   fbPathInput.value = dir;
+  localStorage.setItem('fb-last-dir', dir);
   try {
     const res = await fetch(`/api/desktop/browse?dir=${encodeURIComponent(dir)}&files=true`, { credentials: 'same-origin' });
     const data = await res.json();
