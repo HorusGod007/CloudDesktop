@@ -162,6 +162,19 @@ CloudDesktop is built mobile-first:
 
 ---
 
+## Donate
+
+If CloudDesktop is useful to you, consider supporting development:
+
+| Currency | Address |
+|----------|---------|
+| **USDT (TRC20)** | `TWPe2RnNbTLLgn1cfZhHqkzNb46tHxpsCD` |
+| **ETH / ERC-20 Tokens** | `0x1786f09980942725480d4ba67287366e0a90970a` |
+| **BTC** | `1GzK3GrASavA2d7dC7RKEH3aGf1pY1gjHu` |
+| **LTC** | `LeJJjy1PSbUTyNHuLi6QR276sij5C1MT8u` |
+
+---
+
 ## Contributing
 
 CloudDesktop is fully open source and contributions are welcome! Feel free to open issues, submit pull requests, or fork the project.
